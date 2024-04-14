@@ -15,8 +15,7 @@ import (
 	"time"
 )
 
-//Create a buffer channel
-var sem = make(chan struct{}, 1)
+var limiter <-chan time.Time
 
 // Crawl uses `fetcher` from the `mockfetcher.go` file to imitate a
 // real crawler. It crawls until the maximum depth has reached.
@@ -27,12 +26,9 @@ func Crawl(url string, depth int, wg *sync.WaitGroup) {
 		return
 	}
 
-	//Implement semaphore concept
-	sem <- struct{}{}
+	<-limiter
 	body, urls, err := fetcher.Fetch(url)
-	//Since it's mentioned one page per second so we have to introduce second as well
-	time.Sleep(time.Second)
-	<-sem
+	
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -54,6 +50,8 @@ func Crawl(url string, depth int, wg *sync.WaitGroup) {
 
 func main() {
 	var wg sync.WaitGroup
+
+	limiter = time.Tick(1* time.Second)
 	//sem := make(chan struct{})
 	
 	wg.Add(1)
